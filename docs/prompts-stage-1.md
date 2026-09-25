@@ -1,35 +1,38 @@
-# Registro de prompts — Etapa 1
+# Prompt log — Stage 1
 
-Formato del Appendix A de `refactor.pdf`, con una columna adicional para los archivos cambiados exigidos por la sección 6.1. Las filas conservan el texto original de los pedidos registrados y su orden cronológico.
+This log follows the table format in Appendix A of `refactor.pdf`, with an additional column for the changed files required by Section 6.1. Recorded requests retain their original wording and chronological order. English translations are provided separately and are not presented as verbatim prompts.
 
-**Modelo pendiente de confirmar:** GPT-6 (Codex) es el nombre disponible en esta sesión. El identificador exacto de la variante no está disponible; debe completarse en la columna Model desde el selector o los metadatos de la sesión, sin adivinarlo.
+**Model identification pending:** GPT-6 (Codex) is the model name available in this session. The exact variant identifier is unavailable and must be confirmed from the model selector or session metadata rather than guessed.
 
-**Alcance del registro:** se conserva el pedido de implementación y el ajuste actual del registro. Se omiten los intercambios administrativos sobre Git y la conversación intermedia sobre presentación del registro; esta tabla no es una transcripción exhaustiva de todos los prompts de la sesión.
+**Scope:** this log records the implementation request and subsequent documentation changes. Administrative Git exchanges and the intermediate discussion about log presentation are omitted; this is not an exhaustive transcript of every prompt in the session.
 
-| Number | Model | Exact prompt text | Files changed |
-| --- | --- | --- | --- |
-| 1 | GPT-6 (Codex); ID exacto pendiente | Esto es lo que hay que hacer. necesito avanzar con eun primer commit. lo que ya está hecho dentro del proyecto no lo modifiques ya que yo avancé un poco. aun no he creado el repositorio si | `src/main/java/cl/ucn/disc/arqsist/library/service/LoanPolicy.java`<br>`src/main/java/cl/ucn/disc/arqsist/library/service/NotFoundException.java`<br>`src/test/java/cl/ucn/disc/arqsist/library/service/LoanPolicyTest.java`<br>`docs/prompts-stage-1.md` |
-| 2 | GPT-6 (Codex); ID exacto pendiente | ajustalo | `docs/prompts-stage-1.md` |
+**Working language:** use English for new code identifiers, comments, documentation, and commit messages. Preserve original prompt quotations and required copyright notices; provide English translations for non-English prompts.
 
-La fila 2 solicita adaptar este registro al Appendix A, según el contexto de la conversación.
+| Number | Model | Exact prompt text | English translation | Files changed |
+| --- | --- | --- | --- | --- |
+| 1 | GPT-6 (Codex); exact ID pending | Esto es lo que hay que hacer. necesito avanzar con eun primer commit. lo que ya está hecho dentro del proyecto no lo modifiques ya que yo avancé un poco. aun no he creado el repositorio si | This is what needs to be done. I need to make progress with a first commit. Do not modify what is already in the project, since I have made some progress. I have not created the repository yet, though. | `src/main/java/cl/ucn/disc/arqsist/library/service/LoanPolicy.java`<br>`src/main/java/cl/ucn/disc/arqsist/library/service/NotFoundException.java`<br>`src/test/java/cl/ucn/disc/arqsist/library/service/LoanPolicyTest.java`<br>`docs/prompts-stage-1.md` |
+| 2 | GPT-6 (Codex); exact ID pending | ajustalo | Adjust it. | `docs/prompts-stage-1.md` |
+| 3 | GPT-6 (Codex); exact ID pending | Para respetar el repositorio de trabajo traducelo todo en ingles . ese va ser nuestro formato de trabajo | To respect the working repository, translate everything into English. That will be our working format. | `docs/prompts-stage-1.md` |
 
-### Estado previo a la asistencia
+In context, row 2 requests that this log be adapted to Appendix A. Row 3 establishes English as the repository's working language while retaining original quotations for traceability.
 
-El proyecto ya contenía la estructura DAO con `CrudDao`, interfaces por entidad y adaptadores ORMLite. También estaban implementadas las validaciones de existencia de miembro y libro en `MemberService.checkout()` y el uso compartido de `LoanService.DUE_DAYS`. Estos elementos estaban presentes antes de esta intervención y no fueron modificados por el asistente.
+### State before assistance
 
-### Aporte de la asistencia
+The project already contained the DAO structure with `CrudDao`, entity-specific interfaces, and ORMLite adapters. Member and book existence checks in `MemberService.checkout()` and shared use of `LoanService.DUE_DAYS` were also already implemented. These elements existed before this intervention and were not modified by the assistant.
 
-A partir del PDF, el asistente propuso y agregó exclusivamente:
+### Assistant contribution
 
-- `src/main/java/cl/ucn/disc/arqsist/library/service/LoanPolicy.java`: constantes de plazo y tarifa, y cálculo de vencimiento.
-- `src/main/java/cl/ucn/disc/arqsist/library/service/NotFoundException.java`: excepción para entidades inexistentes.
-- `src/test/java/cl/ucn/disc/arqsist/library/service/LoanPolicyTest.java`: dos pruebas con fechas fijas, para cambio de año y año bisiesto.
-- `docs/prompts-stage-1.md`: este registro.
+Based on the PDF, the assistant proposed and added only:
 
-Los archivos Java nuevos incluyen el encabezado de licencia y Javadoc. Ningún archivo de código preexistente fue modificado.
+- `src/main/java/cl/ucn/disc/arqsist/library/service/LoanPolicy.java`: loan duration and fee constants, plus due date calculation.
+- `src/main/java/cl/ucn/disc/arqsist/library/service/NotFoundException.java`: an exception for missing entities.
+- `src/test/java/cl/ucn/disc/arqsist/library/service/LoanPolicyTest.java`: two fixed-date tests covering a year boundary and a leap year.
+- `docs/prompts-stage-1.md`: this log.
 
-### Validación y pendientes
+The new Java files include the required copyright header and Javadoc. No pre-existing source code was modified.
 
-La ejecución de `gradlew.bat test --offline --console=plain` terminó correctamente: 9 pruebas, sin fallos, incluidas las 2 nuevas. Las posteriores ediciones de este registro no cambiaron el código verificado.
+### Validation and remaining work
 
-Este avance agrega infraestructura; no completa la Etapa 1. Queda pendiente conectar `LoanPolicy` con los servicios e integrar el uso de `NotFoundException`, además de los demás cambios del plan. El plazo ya estaba compartido mediante `LoanService.DUE_DAYS` antes de este avance.
+The command `gradlew.bat test --offline --console=plain` completed successfully: 9 tests passed, including the 2 new tests. Subsequent edits to this log did not change the verified code.
+
+This increment adds infrastructure; it does not complete Stage 1. Integrating `LoanPolicy` into the services and using `NotFoundException` remain pending, along with the other planned changes. The loan duration was already shared through `LoanService.DUE_DAYS` before this increment.
