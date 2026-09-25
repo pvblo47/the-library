@@ -1,16 +1,17 @@
-# Registro de asistencia — Etapa 1
+# Registro de prompts — Etapa 1
 
-Este registro conserva el pedido de implementación original. Se omiten los intercambios administrativos sobre configuración del repositorio y publicación; no se presenta como una transcripción completa de la conversación.
+Formato del Appendix A de `refactor.pdf`, con una columna adicional para los archivos cambiados exigidos por la sección 6.1. Las filas conservan el texto original de los pedidos registrados y su orden cronológico.
 
-## 1. Primer avance sin modificar archivos existentes
+**Modelo pendiente de confirmar:** GPT-6 (Codex) es el nombre disponible en esta sesión. El identificador exacto de la variante no está disponible; debe completarse en la columna Model desde el selector o los metadatos de la sesión, sin adivinarlo.
 
-- Modelo: GPT-6 (Codex). La variante exacta no está disponible en esta sesión; pendiente de completar desde el selector de modelo.
-- Referencia: `refactor.pdf`, cambios 3 y 4.
-- Texto exacto de la solicitud:
+**Alcance del registro:** se conserva el pedido de implementación y el ajuste actual del registro. Se omiten los intercambios administrativos sobre Git y la conversación intermedia sobre presentación del registro; esta tabla no es una transcripción exhaustiva de todos los prompts de la sesión.
 
-```text
-Esto es lo que hay que hacer. necesito avanzar con eun primer commit. lo que ya está hecho dentro del proyecto no lo modifiques ya que yo avancé un poco. aun no he creado el repositorio si
-```
+| Number | Model | Exact prompt text | Files changed |
+| --- | --- | --- | --- |
+| 1 | GPT-6 (Codex); ID exacto pendiente | Esto es lo que hay que hacer. necesito avanzar con eun primer commit. lo que ya está hecho dentro del proyecto no lo modifiques ya que yo avancé un poco. aun no he creado el repositorio si | `src/main/java/cl/ucn/disc/arqsist/library/service/LoanPolicy.java`<br>`src/main/java/cl/ucn/disc/arqsist/library/service/NotFoundException.java`<br>`src/test/java/cl/ucn/disc/arqsist/library/service/LoanPolicyTest.java`<br>`docs/prompts-stage-1.md` |
+| 2 | GPT-6 (Codex); ID exacto pendiente | ajustalo | `docs/prompts-stage-1.md` |
+
+La fila 2 solicita adaptar este registro al Appendix A, según el contexto de la conversación.
 
 ### Estado previo a la asistencia
 
