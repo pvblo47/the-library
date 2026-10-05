@@ -1,3 +1,6 @@
+/*
+ * Copyright (c) 2026. Arquitectura de Sistemas, DISC, UCN, Antofagasta.
+ */
 package cl.ucn.disc.arqsist.library.db;
 
 import cl.ucn.disc.arqsist.library.model.Book;
@@ -14,10 +17,18 @@ import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.List;
 
+/** Opens the database, creates its tables and seeds it with sample data. */
 public final class Database {
 
+    /** Connection source shared by every DAO. */
     private final ConnectionSource connectionSource;
 
+    /**
+     * Opens the database and creates the tables that do not exist yet.
+     *
+     * @param jdbcUrl JDBC URL of the database
+     * @throws SQLException if the connection or a table creation fails
+     */
     public Database(String jdbcUrl) throws SQLException {
         this.connectionSource = new JdbcConnectionSource(jdbcUrl);
         TableUtils.createTableIfNotExists(connectionSource, Book.class);
@@ -26,10 +37,20 @@ public final class Database {
         TableUtils.createTableIfNotExists(connectionSource, Reservation.class);
     }
 
+    /**
+     * Returns the connection source of the database.
+     *
+     * @return the connection source
+     */
     public ConnectionSource connectionSource() {
         return connectionSource;
     }
 
+    /**
+     * Fills each empty table with sample data. Tables that already have rows are left unchanged.
+     *
+     * @throws SQLException if a read or a write fails
+     */
     public void seedIfEmpty() throws SQLException {
         Dao<Book, Integer> bookDao = DaoManager.createDao(connectionSource, Book.class);
         if (bookDao.queryForAll().isEmpty()) {
@@ -65,13 +86,24 @@ public final class Database {
             List<Member> members = memberDao.queryForAll();
             LocalDate today = LocalDate.now();
 
-            reservationDao.create(new Reservation(members.get(0), books.get(1), today.minusDays(1).toString()));
-            reservationDao.create(new Reservation(members.get(1), books.get(0), today.minusDays(3).toString()));
+            reservationDao.create(new Reservation(members.get(0), books.get(1), today.minusDays(1)));
+            reservationDao.create(new Reservation(members.get(1), books.get(0), today.minusDays(3)));
         }
     }
 
+    /**
+     * Creates a loan and takes one copy out of the book's available stock.
+     *
+     * @param bookDao  DAO used to update the book
+     * @param loanDao  DAO used to create the loan
+     * @param member   member who borrows the book
+     * @param book     book that is borrowed
+     * @param loanDate day the book is borrowed
+     * @param dueDate  day the book must be returned by
+     * @throws SQLException if a write fails
+     */
     private void createLoan(Dao<Book, Integer> bookDao, Dao<Loan, Integer> loanDao, Member member, Book book, LocalDate loanDate, LocalDate dueDate) throws SQLException {
-        loanDao.create(new Loan(member, book, loanDate.toString(), dueDate.toString()));
+        loanDao.create(new Loan(member, book, loanDate, dueDate));
         book.setAvailableCopies(book.getAvailableCopies() - 1);
         bookDao.update(book);
     }

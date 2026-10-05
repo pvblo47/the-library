@@ -84,8 +84,8 @@ public final class MemberService {
         bookDao.update(book);
 
         LocalDate today = LocalDate.now();
-        String dueDate = LoanPolicy.dueDate(today).toString();
-        Loan loan = new Loan(member, book, today.toString(), dueDate);
+        LocalDate dueDate = LoanPolicy.dueDate(today);
+        Loan loan = new Loan(member, book, today, dueDate);
         loanDao.create(loan);
         return loan;
     }

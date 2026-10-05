@@ -1,3 +1,6 @@
+/*
+ * Copyright (c) 2026. Arquitectura de Sistemas, DISC, UCN, Antofagasta.
+ */
 package cl.ucn.disc.arqsist.library;
 
 import cl.ucn.disc.arqsist.library.controller.BookController;
@@ -17,11 +20,20 @@ import cl.ucn.disc.arqsist.library.service.BookService;
 import cl.ucn.disc.arqsist.library.service.LoanService;
 import cl.ucn.disc.arqsist.library.service.MemberService;
 import cl.ucn.disc.arqsist.library.service.ReservationService;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import io.javalin.Javalin;
 import io.javalin.http.staticfiles.Location;
+import io.javalin.json.JavalinJackson;
 
+/** Wires the database, DAOs, services and controllers, and starts the web server. */
 public final class App {
 
+    /**
+     * Starts the application on port 7070.
+     *
+     * @param args command-line arguments, not used
+     * @throws Exception if the database cannot be opened or seeded
+     */
     public static void main(String[] args) throws Exception {
         Database db = new Database("jdbc:sqlite:database.sqlite");
         db.seedIfEmpty();
@@ -42,6 +54,8 @@ public final class App {
         ReservationController reservationController = new ReservationController(reservationService);
 
         Javalin.create(config -> {
+            config.jsonMapper(new JavalinJackson().updateMapper(mapper ->
+                    mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)));
             config.staticFiles.add(staticFiles -> {
                 staticFiles.hostedPath = "/";
                 staticFiles.directory = "/public";
