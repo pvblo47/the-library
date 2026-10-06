@@ -1,6 +1,7 @@
 @startuml
 ' Library monolith — DAO pattern option 4
 ' controller -> service -> DAO interfaces <- ORMLite adapters -> model/database
+' Stage 1: BaseDao.transaction, LocalDate fields with LocalDatePersister, LoanPolicy, NotFoundException
 
 skin rose
 ' left to right direction
@@ -62,7 +63,7 @@ package "service" <<service>> {
   }
 
   class LoanService {
-    - {static} int DUE_DAYS = 21
+    + {static} int DUE_DAYS = 21
     - LoanDao loanDao
     - BookDao bookDao
     + findAll() : List<Loan>
@@ -88,6 +89,17 @@ package "service" <<service>> {
     + findAll() : List<Reservation>
     + fulfill(int) : Loan
   }
+
+  class LoanPolicy {
+    + {static} int DUE_DAYS = 21
+    + {static} double FEE_PER_DAY = 1.0
+    - LoanPolicy()
+    + {static} dueDate(LocalDate) : LocalDate
+  }
+
+  class NotFoundException {
+    + NotFoundException(String)
+  }
 }
 
 package "dao" <<dao>> {
@@ -97,6 +109,7 @@ package "dao" <<dao>> {
     + create(T) : void
     + update(T) : void
     + delete(T) : void
+    + transaction(Callable<R>) : R
   }
 
   interface BookDao
@@ -111,6 +124,7 @@ package "dao" <<dao>> {
     + create(T) : void
     + update(T) : void
     + delete(T) : void
+    + transaction(Callable<R>) : R
   }
 
   class OrmLiteBookDao
@@ -177,25 +191,25 @@ package "model" <<model>> {
     - int id
     - Member member
     - Book book
-    - String loanDate
-    - String dueDate
-    - String returnDate
+    - LocalDate loanDate
+    - LocalDate dueDate
+    - LocalDate returnDate
     - boolean returned
     - double overdueFee
     + Loan()
-    + Loan(Member, Book, String, String)
+    + Loan(Member, Book, LocalDate, LocalDate)
     + getId() : int
     + setId(int) : void
     + getMember() : Member
     + setMember(Member) : void
     + getBook() : Book
     + setBook(Book) : void
-    + getLoanDate() : String
-    + setLoanDate(String) : void
-    + getDueDate() : String
-    + setDueDate(String) : void
-    + getReturnDate() : String
-    + setReturnDate(String) : void
+    + getLoanDate() : LocalDate
+    + setLoanDate(LocalDate) : void
+    + getDueDate() : LocalDate
+    + setDueDate(LocalDate) : void
+    + getReturnDate() : LocalDate
+    + setReturnDate(LocalDate) : void
     + isReturned() : boolean
     + setReturned(boolean) : void
     + getOverdueFee() : double
@@ -206,18 +220,18 @@ package "model" <<model>> {
     - int id
     - Member member
     - Book book
-    - String reservedAt
+    - LocalDate reservedAt
     - boolean fulfilled
     + Reservation()
-    + Reservation(Member, Book, String)
+    + Reservation(Member, Book, LocalDate)
     + getId() : int
     + setId(int) : void
     + getMember() : Member
     + setMember(Member) : void
     + getBook() : Book
     + setBook(Book) : void
-    + getReservedAt() : String
-    + setReservedAt(String) : void
+    + getReservedAt() : LocalDate
+    + setReservedAt(LocalDate) : void
     + isFulfilled() : boolean
     + setFulfilled(boolean) : void
   }
@@ -229,7 +243,21 @@ package "db" <<db>> {
     + connectionSource() : ConnectionSource
     + seedIfEmpty() : void
   }
+
+  class LocalDatePersister {
+    - {static} LocalDatePersister SINGLETON
+    - LocalDatePersister()
+    + {static} getSingleton() : LocalDatePersister
+    + parseDefaultString(FieldType, String) : Object
+    + resultToSqlArg(FieldType, DatabaseResults, int) : Object
+    + sqlArgToJava(FieldType, Object, int) : Object
+    + javaToSqlArg(FieldType, Object) : Object
+  }
 }
+
+' ----- external types that the new classes extend -----
+abstract class BaseDataType
+class RuntimeException
 
 ' ----- controller -> service / DAO contract -----
 BookController "1" --> "1" BookService
@@ -257,6 +285,15 @@ OrmLiteMemberDao "1" --> "0..*" Member
 OrmLiteLoanDao "1" --> "0..*" Loan
 OrmLiteReservationDao "1" --> "0..*" Reservation
 BaseDao ..> Database : ConnectionSource
+
+' ----- Stage 1: policy, errors and typed dates -----
+MemberService ..> LoanPolicy : dueDate
+ReservationService ..> LoanPolicy : dueDate
+BookService ..> NotFoundException : throws
+NotFoundException --|> RuntimeException
+LocalDatePersister --|> BaseDataType
+Loan ..> LocalDatePersister : persists dates
+Reservation ..> LocalDatePersister : persists reservedAt
 
 ' ----- model relationships -----
 Loan "0..*" --> "1" Member
