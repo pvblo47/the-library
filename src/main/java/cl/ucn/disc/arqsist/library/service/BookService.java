@@ -8,7 +8,7 @@ import cl.ucn.disc.arqsist.library.model.Book;
 
 import java.util.List;
 
-/** Owns the book catalog and is the single place that changes the number of available copies. */
+/** Manages the book catalog and provides guarded borrowing and copy-return operations. */
 public final class BookService {
 
     /** DAO used to read and persist books. */

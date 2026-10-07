@@ -28,6 +28,10 @@ import io.javalin.json.JavalinJackson;
 /** Wires the database, DAOs, services and controllers, and starts the web server. */
 public final class App {
 
+    /** Creates the application entry point; initialization is performed by {@link #main(String[])}. */
+    public App() {
+    }
+
     /**
      * Starts the application on port 7070.
      *
