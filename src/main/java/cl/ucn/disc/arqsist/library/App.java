@@ -25,6 +25,9 @@ import io.javalin.Javalin;
 import io.javalin.http.staticfiles.Location;
 import io.javalin.json.JavalinJackson;
 
+import java.time.Clock;
+import java.time.ZoneId;
+
 /** Wires the database, DAOs, services and controllers, and starts the web server. */
 public final class App {
 
@@ -48,13 +51,14 @@ public final class App {
         ReservationDao reservationDao = new OrmLiteReservationDao(db.connectionSource());
 
         BookService bookService = new BookService(bookDao);
-        MemberService memberService = new MemberService(memberDao, bookDao, loanDao);
-        LoanService loanService = new LoanService(loanDao, bookDao);
+        Clock clock = Clock.system(ZoneId.of("America/Santiago"));
+        MemberService memberService = new MemberService(memberDao);
+        LoanService loanService = new LoanService(loanDao, memberDao, bookService, clock);
         ReservationService reservationService = new ReservationService(reservationDao, bookDao, memberDao, loanDao);
 
         BookController bookController = new BookController(bookService, bookDao);
         MemberController memberController = new MemberController(memberService);
-        LoanController loanController = new LoanController(memberService, loanService);
+        LoanController loanController = new LoanController(loanService);
         ReservationController reservationController = new ReservationController(reservationService);
 
         Javalin.create(config -> {
