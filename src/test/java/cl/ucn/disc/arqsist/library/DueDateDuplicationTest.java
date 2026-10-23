@@ -3,7 +3,14 @@
  */
 package cl.ucn.disc.arqsist.library;
 
-import cl.ucn.disc.arqsist.library.dao.*;
+import cl.ucn.disc.arqsist.library.dao.BookDao;
+import cl.ucn.disc.arqsist.library.dao.LoanDao;
+import cl.ucn.disc.arqsist.library.dao.MemberDao;
+import cl.ucn.disc.arqsist.library.dao.ReservationDao;
+import cl.ucn.disc.arqsist.library.dao.OrmLiteBookDao;
+import cl.ucn.disc.arqsist.library.dao.OrmLiteLoanDao;
+import cl.ucn.disc.arqsist.library.dao.OrmLiteMemberDao;
+import cl.ucn.disc.arqsist.library.dao.OrmLiteReservationDao;
 import cl.ucn.disc.arqsist.library.db.Database;
 import cl.ucn.disc.arqsist.library.model.Book;
 import cl.ucn.disc.arqsist.library.model.Loan;
@@ -20,18 +27,20 @@ import org.junit.jupiter.api.Test;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.time.temporal.ChronoUnit;
+import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-/** Compares loan periods while reservation clock injection remains a later increment. */
+/** Verifies both lending paths share a fixed date, the policy, and guarded inventory. */
 class DueDateDuplicationTest {
 
     /** Database shared by the services. */
     private Database database;
+    /** Book DAO used to verify persisted copy counts after each lending path. */
+    private BookDao bookDao;
     /** Clock-based checkout service. */
     private LoanService loanService;
-    /** Existing reservation service, pending Change 9. */
+    /** Reservation service using the same clock and inventory service as checkout. */
     private ReservationService reservationService;
     /** Book with capacity for both lending paths. */
     private Book book;
@@ -39,20 +48,21 @@ class DueDateDuplicationTest {
     private Member member;
 
     /**
-     * Creates both services with their currently supported constructors.
+     * Creates both services with the same fixed clock and database connection source.
      *
      * @throws Exception if setup fails
      */
     @BeforeEach
     void setUp() throws Exception {
         database = new Database("jdbc:sqlite::memory:");
-        BookDao bookDao = new OrmLiteBookDao(database.connectionSource());
+        bookDao = new OrmLiteBookDao(database.connectionSource());
         MemberDao memberDao = new OrmLiteMemberDao(database.connectionSource());
         LoanDao loanDao = new OrmLiteLoanDao(database.connectionSource());
         ReservationDao reservationDao = new OrmLiteReservationDao(database.connectionSource());
         Clock clock = Clock.fixed(Instant.parse("2026-01-15T10:00:00Z"), ZoneOffset.UTC);
-        loanService = new LoanService(loanDao, memberDao, new BookService(bookDao), clock);
-        reservationService = new ReservationService(reservationDao, bookDao, memberDao, loanDao);
+        BookService bookService = new BookService(bookDao);
+        loanService = new LoanService(loanDao, memberDao, bookService, clock);
+        reservationService = new ReservationService(reservationDao, memberDao, loanDao, bookService, clock);
         book = new Book("Design Patterns", "Gamma et al.", "9780201633610", 2);
         bookDao.create(book);
         member = new Member("Grace Hopper", "grace@example.com");
@@ -70,19 +80,20 @@ class DueDateDuplicationTest {
     }
 
     /**
-     * Both lending paths use the policy's period despite their temporarily different clocks.
-     * Absolute due-date equality will be checked once Change 9 injects the same fixed clock.
+     * Both lending paths produce identical due dates and each consumes one available copy.
      *
      * @throws Exception if checkout or reservation fulfillment fails
      */
     @Test
     void checkoutAndFulfillUseTheSameLoanPeriod() throws Exception {
         Loan fromCheckout = loanService.checkout(member.getId(), book.getId());
+        assertEquals(1, bookDao.findById(book.getId()).getAvailableCopies());
         Reservation reservation = reservationService.reserve(book.getId(), member.getId());
         Loan fromFulfill = reservationService.fulfill(reservation.getId());
-        assertEquals(LoanPolicy.DUE_DAYS,
-                ChronoUnit.DAYS.between(fromCheckout.getLoanDate(), fromCheckout.getDueDate()));
-        assertEquals(LoanPolicy.DUE_DAYS,
-                ChronoUnit.DAYS.between(fromFulfill.getLoanDate(), fromFulfill.getDueDate()));
+        assertEquals(LocalDate.of(2026, 1, 15), fromCheckout.getLoanDate());
+        assertEquals(fromCheckout.getLoanDate(), fromFulfill.getLoanDate());
+        assertEquals(LoanPolicy.dueDate(fromCheckout.getLoanDate()), fromCheckout.getDueDate());
+        assertEquals(fromCheckout.getDueDate(), fromFulfill.getDueDate());
+        assertEquals(0, bookDao.findById(book.getId()).getAvailableCopies());
     }
 }
