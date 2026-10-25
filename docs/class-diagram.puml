@@ -1,7 +1,8 @@
 @startuml
-' Library monolith — DAO pattern option 4
+' Library monolith - DAO pattern option 4
 ' controller -> service -> DAO interfaces <- ORMLite adapters -> model/database
 ' Stage 1: BaseDao.transaction, LocalDate fields with LocalDatePersister, LoanPolicy, NotFoundException
+' Stage 2: service-owned lending, shared Clock, inventory delegation, and service-only controllers
 
 skin rose
 ' left to right direction
@@ -31,23 +32,25 @@ hide stereotype
 package "controller" <<controller>> {
   class BookController {
     - BookService service
-    - BookDao dao
+    + BookController(BookService)
     + register(JavalinConfig) : void
   }
 
   class LoanController {
-    - MemberService memberService
     - LoanService loanService
+    + LoanController(LoanService)
     + register(JavalinConfig) : void
   }
 
   class MemberController {
     - MemberService service
+    + MemberController(MemberService)
     + register(JavalinConfig) : void
   }
 
   class ReservationController {
     - ReservationService service
+    + ReservationController(ReservationService)
     + register(JavalinConfig) : void
   }
 }
@@ -55,6 +58,7 @@ package "controller" <<controller>> {
 package "service" <<service>> {
   class BookService {
     - BookDao dao
+    + BookService(BookDao)
     + listAll() : List<Book>
     + findById(int) : Book
     + create(Book) : Book
@@ -63,31 +67,36 @@ package "service" <<service>> {
   }
 
   class LoanService {
-    + {static} int DUE_DAYS = 21
     - LoanDao loanDao
-    - BookDao bookDao
+    - MemberDao memberDao
+    - BookService bookService
+    - Clock clock
+    + LoanService(LoanDao, MemberDao, BookService, Clock)
     + findAll() : List<Loan>
-    + returnLoan(int) : Loan
+    + checkout(int memberId, int bookId) : Loan throws SQLException
+    + returnLoan(int loanId) : Loan throws SQLException
     + overdueLoans() : List<Loan>
+    - withAccruedFees(List<Loan> loans) : List<Loan>
+    - accruedFee(Loan loan, LocalDate today) : double
   }
 
   class MemberService {
     - MemberDao memberDao
-    - BookDao bookDao
-    - LoanDao loanDao
+    + MemberService(MemberDao)
     + register(Member) : Member
     + findAll() : List<Member>
-    + checkout(int, int) : Loan
   }
 
   class ReservationService {
     - ReservationDao reservationDao
-    - BookDao bookDao
     - MemberDao memberDao
     - LoanDao loanDao
-    + reserve(int, int) : Reservation
+    - BookService bookService
+    - Clock clock
+    + ReservationService(ReservationDao, MemberDao, LoanDao, BookService, Clock)
+    + reserve(int bookId, int memberId) : Reservation
     + findAll() : List<Reservation>
-    + fulfill(int) : Loan
+    + fulfill(int reservationId) : Loan throws SQLException
   }
 
   class LoanPolicy {
@@ -255,41 +264,45 @@ package "db" <<db>> {
   }
 }
 
-' ----- external types that the new classes extend -----
+' ----- external supertypes and injected infrastructure -----
 abstract class BaseDataType
 class RuntimeException
+abstract class "java.time.Clock" as Clock
+interface "com.j256.ormlite.support.ConnectionSource" as ConnectionSource
 
-' ----- controller -> service / DAO contract -----
+' ----- controllers depend only on services -----
 BookController "1" --> "1" BookService
-BookController "1" --> "1" BookDao
-LoanController "1" --> "1" MemberService
 LoanController "1" --> "1" LoanService
 MemberController "1" --> "1" MemberService
 ReservationController "1" --> "1" ReservationService
 
-' ----- services depend only on DAO interfaces -----
+' ----- services use DAO interfaces, guarded inventory, and injected clocks -----
 BookService "1" --> "1" BookDao
 LoanService "1" --> "1" LoanDao
-LoanService "1" --> "1" BookDao
+LoanService "1" --> "1" MemberDao
+LoanService "1" --> "1" BookService
+LoanService "1" --> "1" Clock
 MemberService "1" --> "1" MemberDao
-MemberService "1" --> "1" BookDao
-MemberService "1" --> "1" LoanDao
 ReservationService "1" --> "1" ReservationDao
-ReservationService "1" --> "1" BookDao
 ReservationService "1" --> "1" MemberDao
 ReservationService "1" --> "1" LoanDao
+ReservationService "1" --> "1" BookService
+ReservationService "1" --> "1" Clock
 
 ' ----- concrete persistence adapters -----
 OrmLiteBookDao "1" --> "0..*" Book
 OrmLiteMemberDao "1" --> "0..*" Member
 OrmLiteLoanDao "1" --> "0..*" Loan
 OrmLiteReservationDao "1" --> "0..*" Reservation
-BaseDao ..> Database : ConnectionSource
+BaseDao ..> ConnectionSource : constructor parameter
+Database "1" --> "1" ConnectionSource
 
-' ----- Stage 1: policy, errors and typed dates -----
-MemberService ..> LoanPolicy : dueDate
+' ----- shared policy, domain errors, and typed dates -----
+LoanService ..> LoanPolicy : dueDate / FEE_PER_DAY
 ReservationService ..> LoanPolicy : dueDate
 BookService ..> NotFoundException : throws
+LoanService ..> NotFoundException : throws
+ReservationService ..> NotFoundException : throws
 NotFoundException --|> RuntimeException
 LocalDatePersister --|> BaseDataType
 Loan ..> LocalDatePersister : persists dates
