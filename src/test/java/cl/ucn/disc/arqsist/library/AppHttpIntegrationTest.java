@@ -32,6 +32,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -159,6 +160,57 @@ class AppHttpIntegrationTest {
         assertEquals("2026-01-15", returned.get("returnDate").asText());
         assertEquals(LocalDate.of(2026, 1, 15), loanDao.findById(loanId).getReturnDate());
         assertState(2, 1, 0);
+    }
+
+    /**
+     * Both loan-list endpoints expose the same accrued fee without persisting it or changing stock.
+     * The overdue endpoint excludes active, due-today, and returned loans.
+     *
+     * @throws Exception if HTTP or persistence verification fails
+     */
+    @Test
+    void overdueListingUsesTheSameAccruedFeesWithoutPersistingThem() throws Exception {
+        LocalDate today = LocalDate.of(2026, 1, 15);
+        book.setTotalCopies(4);
+        book.setAvailableCopies(1);
+        bookDao.update(book);
+        Loan overdue = new Loan(member, book, LocalDate.of(2025, 12, 1), LocalDate.of(2025, 12, 22));
+        Loan active = new Loan(member, book, today, today.plusDays(21));
+        Loan dueToday = new Loan(member, book, today.minusDays(21), today);
+        Loan returned = new Loan(member, book, today.minusDays(40), today.minusDays(19));
+        returned.setReturned(true);
+        returned.setReturnDate(today.minusDays(12));
+        returned.setOverdueFee(7.0);
+        loanDao.create(overdue);
+        loanDao.create(active);
+        loanDao.create(dueToday);
+        loanDao.create(returned);
+
+        JsonNode overdueList = json(request("GET", "/loans/overdue", null), 200);
+        assertEquals(1, overdueList.size());
+        assertEquals(overdue.getId(), overdueList.get(0).get("id").asInt());
+        assertEquals(24.0, overdueList.get(0).get("overdueFee").asDouble());
+        assertEquals(0.0, loanDao.findById(overdue.getId()).getOverdueFee());
+
+        JsonNode allLoans = json(request("GET", "/loans", null), 200);
+        Map<Integer, Double> expectedFees = Map.of(overdue.getId(), 24.0, active.getId(), 0.0,
+                dueToday.getId(), 0.0, returned.getId(), 7.0);
+        assertEquals(4, allLoans.size());
+        for (JsonNode loan : allLoans) {
+            int id = loan.get("id").asInt();
+            assertTrue(expectedFees.containsKey(id));
+            assertEquals(expectedFees.get(id).doubleValue(), loan.get("overdueFee").asDouble());
+            if (id == overdue.getId()) {
+                assertEquals(loan.get("overdueFee").asDouble(), overdueList.get(0).get("overdueFee").asDouble());
+            }
+        }
+        assertEquals(0.0, loanDao.findById(overdue.getId()).getOverdueFee());
+        assertEquals(0.0, loanDao.findById(active.getId()).getOverdueFee());
+        assertEquals(0.0, loanDao.findById(dueToday.getId()).getOverdueFee());
+        assertEquals(7.0, loanDao.findById(returned.getId()).getOverdueFee());
+        assertFalse(loanDao.findById(overdue.getId()).isReturned());
+        assertNull(loanDao.findById(overdue.getId()).getReturnDate());
+        assertState(1, 4, 0);
     }
 
     /**

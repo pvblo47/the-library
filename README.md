@@ -71,7 +71,7 @@ src/main/java/cl/ucn/disc/arqsist/library/
 ├── db/Database.java              # connection, tables, seeding
 └── model/                        # Book, Member, Loan, Reservation
 src/main/resources/public/        # static frontend (index.html, app.js)
-src/test/java/...                 # JUnit 5 tests
+src/test/java/...                 # JUnit 6 tests
 docs/class-diagram.puml           # PlantUML class diagram
 ```
 
@@ -96,7 +96,7 @@ docs/class-diagram.puml           # PlantUML class diagram
 
 Then open http://localhost:7070
 
-The SQLite database file `database.sqlite` is created in the project directory on first run and seeded with a few books
+The SQLite database file `database.db` is created in the project directory on first run and seeded with a few books
 and members.
 
 ## REST API

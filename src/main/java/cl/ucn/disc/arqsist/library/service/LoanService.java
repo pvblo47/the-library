@@ -122,16 +122,18 @@ public final class LoanService {
     }
 
     /**
-     * Lists the open loans whose due date is before today.
+     * Lists the open loans whose due date is before today, with their current accrued fees.
+     * Calculated fees are applied in memory and are not saved.
      *
-     * @return the overdue loans
+     * @return the open overdue loans with their accrued fees
      * @throws RuntimeException if the loans cannot be read
      */
     public List<Loan> overdueLoans() {
         LocalDate today = LocalDate.now(clock);
-        return loanDao.findAll().stream()
+        List<Loan> loans = loanDao.findAll().stream()
                 .filter(loan -> !loan.isReturned() && loan.getDueDate().isBefore(today))
                 .toList();
+        return withAccruedFees(loans);
     }
 
     /**

@@ -22,12 +22,13 @@ import static org.junit.jupiter.api.Assertions.*;
 class AccruedFeeTest {
 
     /**
-     * Open overdue loans accrue fees while active, due-today, and returned loans retain theirs.
+     * Both listings accrue the same fee without persisting it. Only open overdue loans appear
+     * in the overdue listing; active, due-today, and returned loans are excluded.
      *
      * @throws Exception if database setup or closing fails
      */
     @Test
-    void findAllAccruesFeesWithoutPersistingThem() throws Exception {
+    void bothListingsAccrueFeesWithoutPersistingThem() throws Exception {
         Database database = new Database("jdbc:sqlite::memory:");
         try {
             BookDao bookDao = new OrmLiteBookDao(database.connectionSource());
@@ -52,14 +53,25 @@ class AccruedFeeTest {
             loanDao.create(dueToday);
             loanDao.create(returned);
 
+            List<Loan> overdueListed = service.overdueLoans();
+            assertEquals(1, overdueListed.size());
+            assertEquals(overdue.getId(), overdueListed.getFirst().getId());
+            assertEquals(24.0, feeOf(overdueListed, overdue.getId()));
+            assertEquals(0.0, loanDao.findById(overdue.getId()).getOverdueFee());
+
             List<Loan> listed = service.findAll();
             assertEquals(24.0, feeOf(listed, overdue.getId()));
+            assertEquals(feeOf(listed, overdue.getId()), feeOf(overdueListed, overdue.getId()));
             assertEquals(0.0, feeOf(listed, active.getId()));
             assertEquals(0.0, feeOf(listed, dueToday.getId()));
             assertEquals(7.0, feeOf(listed, returned.getId()));
             assertEquals(0.0, loanDao.findById(overdue.getId()).getOverdueFee());
+            assertEquals(0.0, loanDao.findById(active.getId()).getOverdueFee());
+            assertEquals(0.0, loanDao.findById(dueToday.getId()).getOverdueFee());
             assertEquals(7.0, loanDao.findById(returned.getId()).getOverdueFee());
             assertEquals(24.0, feeOf(service.findAll(), overdue.getId()));
+            assertEquals(24.0, feeOf(service.overdueLoans(), overdue.getId()));
+            assertEquals(0.0, loanDao.findById(overdue.getId()).getOverdueFee());
         } finally {
             database.connectionSource().close();
         }
