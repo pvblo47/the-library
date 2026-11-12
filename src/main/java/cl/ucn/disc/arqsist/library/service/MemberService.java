@@ -8,7 +8,7 @@ import cl.ucn.disc.arqsist.library.model.Member;
 
 import java.util.List;
 
-/** Registers members and lists the membership catalog. */
+/** Registers members and reads the membership catalog. */
 public final class MemberService {
 
     /** DAO used to read and persist members. */
@@ -43,6 +43,22 @@ public final class MemberService {
      */
     public List<Member> findAll() {
         return memberDao.findAll();
+    }
+
+    /**
+     * Find a member by ID.
+     *
+     * @param id the member ID
+     * @return the member
+     * @throws NotFoundException if the member does not exist
+     */
+    public Member findById(int id) {
+        // ORMLite returns null when the row does not exist.
+        Member member = memberDao.findById(id);
+        if (member == null) {
+            throw new NotFoundException("Member not found: " + id);
+        }
+        return member;
     }
 
 }
