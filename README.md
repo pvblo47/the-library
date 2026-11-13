@@ -154,6 +154,27 @@ curl -X POST "http://localhost:7070/reservations?memberId=1&bookId=1"
 curl -X POST http://localhost:7070/reservations/1/fulfill
 ```
 
+## gRPC API
+
+The member module is also a gRPC service. The contract is `src/main/proto/member.proto`. The server binds to
+`127.0.0.1:50051` at startup. The browser keeps using REST. `MemberClientApp` is an example gRPC client.
+
+| RPC              | Request                 | Reply              |
+|------------------|-------------------------|--------------------|
+| `RegisterMember` | `RegisterMemberRequest` | `MemberMessage`    |
+| `ListMembers`    | `ListMembersRequest`    | `ListMembersReply` |
+| `GetMember`      | `GetMemberRequest`      | `MemberMessage`    |
+
+A missing member gives the gRPC status `NOT_FOUND`. The server uses plaintext without TLS or authentication and accepts
+connections from the local host only.
+
+Start the app with `./gradlew run`. Then run the client in a second terminal:
+
+```bash
+./gradlew runClient
+./gradlew runClient --args="1 2"
+```
+
 ## Build & tests
 
 ```bash
