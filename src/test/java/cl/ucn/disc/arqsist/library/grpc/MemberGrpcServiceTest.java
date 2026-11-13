@@ -5,6 +5,7 @@ package cl.ucn.disc.arqsist.library.grpc;
 
 import cl.ucn.disc.arqsist.library.dao.BaseDao;
 import cl.ucn.disc.arqsist.library.dao.MemberDao;
+import cl.ucn.disc.arqsist.library.dao.OrmLiteMemberDao;
 import cl.ucn.disc.arqsist.library.db.Database;
 import cl.ucn.disc.arqsist.library.model.Member;
 import cl.ucn.disc.arqsist.library.service.MemberService;
@@ -169,6 +170,8 @@ class MemberGrpcServiceTest {
                 expectedCode, failure.getMessage());
         assertStatus(() -> rpc().getMember(GetMemberRequest.newBuilder().setId(9999).build()),
                 expectedCode, failure.getMessage());
+        assertStatus(() -> rpc().searchMembers(SearchMembersRequest.newBuilder().setQuery("Ada").build()),
+                expectedCode, failure.getMessage());
 
         dao.failure = null;
         assertEquals(0, rpc().listMembers(ListMembersRequest.getDefaultInstance()).getMembersCount());
@@ -209,11 +212,14 @@ class MemberGrpcServiceTest {
         assertEquals(expectedDescription, error.getStatus().getDescription());
     }
 
-    /** Real shared DAO implementation whose three adapter-facing operations can fail on demand. */
+    /** Real shared DAO implementation whose adapter-facing operations can fail on demand. */
     private static final class ControllableMemberDao extends BaseDao<Member> implements MemberDao {
 
         /** Error thrown before a read or write, or null to use actual persistence. */
         private RuntimeException failure;
+
+        /** Production adapter for member-specific queries. */
+        private final OrmLiteMemberDao memberQueries;
 
         /**
          * Creates a test adapter against the same connection source as the domain service.
@@ -222,6 +228,14 @@ class MemberGrpcServiceTest {
          */
         private ControllableMemberDao(ConnectionSource connectionSource) {
             super(connectionSource, Member.class);
+            memberQueries = new OrmLiteMemberDao(connectionSource);
+        }
+
+        /** {@inheritDoc} */
+        @Override
+        public List<Member> search(String query) {
+            failIfConfigured();
+            return memberQueries.search(query);
         }
 
         /**

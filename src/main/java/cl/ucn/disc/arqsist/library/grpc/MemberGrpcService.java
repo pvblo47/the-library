@@ -88,6 +88,24 @@ public final class MemberGrpcService extends MemberServiceGrpc.MemberServiceImpl
         }
     }
     /**
+     * Search the catalog for members matching a name fragment.
+     *
+     * @param request the query supplied by the client
+     * @param observer the reply observer
+     */
+    @Override
+    public void searchMembers(SearchMembersRequest request, StreamObserver<ListMembersReply> observer) {
+        try {
+            List<MemberMessage> members = memberService.search(request.getQuery()).stream()
+                    .map(MemberGrpcService::toMessage)
+                    .toList();
+            observer.onNext(ListMembersReply.newBuilder().addAllMembers(members).build());
+            observer.onCompleted();
+        } catch (RuntimeException e) {
+            observer.onError(toError(e));
+        }
+    }
+    /**
      * Map a domain error to a gRPC status error.
      *
      * @param e the domain error

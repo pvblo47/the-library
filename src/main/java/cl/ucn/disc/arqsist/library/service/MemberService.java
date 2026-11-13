@@ -61,4 +61,19 @@ public final class MemberService {
         return member;
     }
 
+    /**
+     * Finds members whose names contain the supplied fragment, ignoring ASCII letter case.
+     *
+     * @param query name fragment, optionally surrounded by whitespace
+     * @return matching members ordered by increasing ID
+     * @throws IllegalArgumentException if the query is blank
+     */
+    public List<Member> search(String query) {
+        String fragment = query.strip();
+        if (fragment.isEmpty()) {
+            throw new IllegalArgumentException("Member search query must not be blank");
+        }
+        return memberDao.search(fragment);
+    }
+
 }

@@ -6,6 +6,7 @@ service MemberService {
   rpc RegisterMember (RegisterMemberRequest) returns (MemberMessage);
   rpc ListMembers (ListMembersRequest) returns (ListMembersReply);
   rpc GetMember (GetMemberRequest) returns (MemberMessage);
+  rpc SearchMembers (SearchMembersRequest) returns (ListMembersReply);
 }
 message MemberMessage {
   int32 id = 1;
@@ -22,4 +23,7 @@ message ListMembersReply {
 }
 message GetMemberRequest {
   int32 id = 1;
+}
+message SearchMembersRequest {
+  string query = 1;
 }

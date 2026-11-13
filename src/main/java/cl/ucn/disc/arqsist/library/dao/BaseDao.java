@@ -14,7 +14,7 @@ import java.util.concurrent.Callable;
 
 /**
  * Shared ORMLite implementation of the generic CRUD operations and of transactions.
- * Concrete DAOs only provide the entity class they manage.
+ * Concrete adapters can also use the shared SQL error handling for entity-specific queries.
  *
  * @param <T> entity type managed by the DAO
  */
@@ -127,7 +127,7 @@ public abstract class BaseDao<T> implements CrudDao<T> {
      * @return the value returned by the operation
      * @throws RuntimeException if the operation throws a {@link SQLException}; the SQL error is its cause
      */
-    private static <R> R execute(SqlOperation<R> operation, String message) {
+    protected static <R> R execute(SqlOperation<R> operation, String message) {
         try {
             return operation.run();
         } catch (SQLException e) {
@@ -141,7 +141,7 @@ public abstract class BaseDao<T> implements CrudDao<T> {
      * @param <R> type returned by the operation
      */
     @FunctionalInterface
-    private interface SqlOperation<R> {
+    protected interface SqlOperation<R> {
 
         /**
          * Runs the operation.
