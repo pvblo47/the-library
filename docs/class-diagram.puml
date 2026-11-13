@@ -27,6 +27,10 @@ skinparam package<<db>> {
   BackgroundColor #F3E5F5
   BorderColor #7B1FA2
 }
+skinparam package<<grpc>> {
+  BackgroundColor #E0F7FA
+  BorderColor #00838F
+}
 hide stereotype
 
 package "controller" <<controller>> {
@@ -85,6 +89,7 @@ package "service" <<service>> {
     + MemberService(MemberDao)
     + register(Member) : Member
     + findAll() : List<Member>
+    + findById(int) : Member
   }
 
   class ReservationService {
@@ -264,6 +269,40 @@ package "db" <<db>> {
   }
 }
 
+package "grpc" <<grpc>> {
+  class MemberGrpcService {
+    + {static} HOST : String
+    + {static} PORT : int
+    - MemberService memberService
+    + registerMember(RegisterMemberRequest, StreamObserver<MemberMessage>) : void
+    + listMembers(ListMembersRequest, StreamObserver<ListMembersReply>) : void
+    + getMember(GetMemberRequest, StreamObserver<MemberMessage>) : void
+  }
+
+  class MemberClient {
+    - ManagedChannel channel
+    - MemberServiceBlockingStub stub
+    + MemberClient(String, int)
+    + MemberClient(ManagedChannel)
+    + register(Member) : Member
+    + findAll() : List<Member>
+    + findById(int) : Member
+    + close() : void
+  }
+
+  class MemberClientApp {
+    + {static} main(String[]) : void
+  }
+
+  abstract class MemberServiceImplBase <<generated>>
+  class MemberServiceBlockingStub <<generated>>
+  show MemberServiceImplBase stereotype
+  show MemberServiceBlockingStub stereotype
+  note "Both classes are generated from member.proto." as GeneratedNote
+  GeneratedNote .. MemberServiceImplBase
+  GeneratedNote .. MemberServiceBlockingStub
+}
+
 ' ----- external supertypes and injected infrastructure -----
 abstract class BaseDataType
 class RuntimeException
@@ -307,6 +346,16 @@ NotFoundException --|> RuntimeException
 LocalDatePersister --|> BaseDataType
 Loan ..> LocalDatePersister : persists dates
 Reservation ..> LocalDatePersister : persists reservedAt
+
+' ----- grpc -----
+MemberGrpcService --|> MemberServiceImplBase
+MemberGrpcService "1" --> "1" MemberService
+MemberGrpcService ..> Member
+MemberGrpcService ..> NotFoundException
+MemberClientApp "1" --> "1" MemberClient
+MemberClient ..> MemberServiceBlockingStub
+MemberClient ..> Member
+MemberClient ..> NotFoundException
 
 ' ----- model relationships -----
 Loan "0..*" --> "1" Member
