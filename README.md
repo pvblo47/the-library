@@ -164,6 +164,11 @@ The member module is also a gRPC service. The contract is `src/main/proto/member
 | `RegisterMember` | `RegisterMemberRequest` | `MemberMessage`    |
 | `ListMembers`    | `ListMembersRequest`    | `ListMembersReply` |
 | `GetMember`      | `GetMemberRequest`      | `MemberMessage`    |
+| `SearchMembers`  | `SearchMembersRequest`  | `ListMembersReply` |
+
+`SearchMembers` matches a literal name fragment, ignores ASCII letter case, and trims surrounding whitespace.
+Results are ordered by member ID ascending. The characters `%` and `_` are literal characters.
+A query with no matches returns an empty list. An empty or whitespace-only query returns `INVALID_ARGUMENT`.
 
 A missing member gives the gRPC status `NOT_FOUND`. The server uses plaintext without TLS or authentication and accepts
 connections from the local host only.
